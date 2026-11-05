@@ -6,20 +6,16 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [activeTab, setActiveTab] = useState('feed');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  
-  // Data State
+  const [activeTab, setActiveTab] = useState('home'); // home, map, post, calendar, profile, notifications, scan
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [items, setItems] = useState([]);
-  const [filter, setFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [notifications, setNotifications] = useState([]);
+  const [user, setUser] = useState({ name: 'นิริน', email: 'nirin@g.swu.ac.th', verified: false });
 
-  // Form State
+  // Form state
   const [title, setTitle] = useState('');
-  const [location, setLocation] = useState('อาคารเรียนรวมมล.ปิ่น มาลากุล (ตึก 300 ปี)');
+  const [category, setCategory] = useState('กระเป๋า');
+  const [location, setLocation] = useState('อาคารเรียนรวม (Learning Tower)');
   const [type, setType] = useState('lost');
   const [description, setDescription] = useState('');
   const [contact, setContact] = useState('');
@@ -27,23 +23,43 @@ export default function App() {
   const mockItems = [
     {
       id: 1,
-      title: 'กระเป๋าตังค์หนังสีดำ',
-      location: 'อาคารเรียนรวมมล.ปิ่น มาลากุล (ตึก 300 ปี)',
+      title: 'กล่องดินสอสีเขียว',
+      category: 'อุปกรณ์การเรียน',
+      location: 'อาคารเรียนรวม (Learning Tower)',
       type: 'lost',
-      description: 'ทำตกไว้แถวใต้ตึก มีบัตรนิสิต มศว อยู่ข้างใน',
-      contact: '081-234-5678',
-      date: '5 พ.ย. 2026',
-      image: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=500&auto=format&fit=crop&q=60'
+      date: '5 พ.ย. 2569 23:25 น.',
+      icon: '✏️',
+      color: 'bg-rose-100 text-rose-500'
     },
     {
       id: 2,
-      title: 'พบหูฟัง AirPods Pro',
-      location: 'โรงอาหารกลาง (ตึก 21)',
+      title: 'กระเป๋าสตางค์',
+      category: 'กระเป๋า',
+      location: 'สำนักหอสมุดกลาง',
+      type: 'lost',
+      date: '4 พ.ย. 2569 23:25 น.',
+      icon: '👜',
+      color: 'bg-rose-100 text-rose-500'
+    },
+    {
+      id: 3,
+      title: 'โทรศัพท์มือถือ',
+      category: 'มือถือ',
+      location: 'โรงอาหาร',
       type: 'found',
-      description: 'เก็บได้ที่โต๊ะกินข้าว ฝากไว้ที่เคาน์เตอร์ประชาสัมพันธ์',
-      contact: 'IG: student_swu',
-      date: '5 พ.ย. 2026',
-      image: 'https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=500&auto=format&fit=crop&q=60'
+      date: '3 พ.ย. 2569 23:25 น.',
+      icon: '📱',
+      color: 'bg-emerald-100 text-emerald-600'
+    },
+    {
+      id: 4,
+      title: 'กุญแจ',
+      category: 'กุญแจ',
+      location: 'ทางเข้า ซอยสุขุมวิท 23',
+      type: 'found',
+      date: '2 พ.ย. 2569 23:25 น.',
+      icon: '🔑',
+      color: 'bg-emerald-100 text-emerald-600'
     }
   ];
 
@@ -64,316 +80,424 @@ export default function App() {
     }
   };
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    setIsLoggedIn(true);
-  };
-
-  const handlePost = async (e) => {
+  const handlePostSubmit = async (e) => {
     e.preventDefault();
     const newItem = {
       title,
+      category,
       location,
       type,
       description,
       contact,
-      date: new Date().toLocaleDateString('th-TH'),
-      image: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=500&auto=format&fit=crop&q=60'
+      date: '5 พ.ย. 2569 23:25 น.',
+      icon: category === 'กระเป๋า' ? '👜' : category === 'มือถือ' ? '📱' : category === 'กุญแจ' ? '🔑' : '✏️'
     };
 
     try {
       await supabase.from('items').insert([newItem]);
     } catch (err) {
-      console.log('Local update fallback');
+      console.log('Using local fallback');
     }
 
     setItems([newItem, ...items]);
-    setActiveTab('feed');
+    setActiveTab('home');
     setTitle('');
     setDescription('');
-    setContact('');
   };
 
-  const filteredItems = items.filter(item => {
-    const matchesFilter = filter === 'all' ? true : item.type === filter;
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          item.location.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
-
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-0 sm:p-4 font-sans">
-      <div className="w-full max-w-md bg-white min-h-screen sm:min-h-[844px] sm:max-h-[844px] sm:rounded-[36px] shadow-2xl flex flex-col overflow-hidden relative border-0 sm:border-[6px] border-slate-800">
-        
-        {/* Status Bar */}
-        <div className="bg-[#C8102E] text-white px-6 pt-3 pb-2 flex justify-between items-center text-xs font-semibold">
-          <span>9:41</span>
-          <div className="flex items-center gap-1.5">
-            <span>SWU Wi-Fi</span>
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-[#EBF3FF] flex items-center justify-center p-0 sm:p-4 font-sans">
+      {/* Mobile Frame Container */}
+      <div className="w-full max-w-md bg-[#F4F8FE] min-h-screen sm:min-h-[844px] sm:max-h-[844px] sm:rounded-[40px] shadow-2xl flex flex-col overflow-hidden relative border-0 sm:border-[8px] border-slate-800">
 
-        {/* HEADER */}
-        <div className="bg-[#C8102E] text-white px-5 py-3 shadow-md flex justify-between items-center">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-white text-[#C8102E] flex items-center justify-center font-black text-sm shadow">
-              SWU
-            </div>
-            <div>
-              <h1 className="font-bold text-base leading-tight">Smart Lost & Found</h1>
-              <p className="text-[10px] text-red-100">มหาวิทยาลัยศรีนครินทรวิโรฒ</p>
-            </div>
-          </div>
-          {isLoggedIn && (
-            <button 
-              onClick={() => setIsLoggedIn(false)}
-              className="text-[11px] bg-red-800/80 px-2.5 py-1 rounded-full text-red-100 hover:bg-red-800"
-            >
-              ออกจากระบบ
-            </button>
-          )}
-        </div>
-
-        {/* MAIN BODY */}
-        <div className="flex-1 overflow-y-auto bg-slate-50 pb-20">
+        {/* Dynamic Top Content */}
+        <div className="flex-1 overflow-y-auto pb-24">
           
-          {/* SCREEN 1: LOGIN FORM (เมื่อยังไม่ได้เข้าสู่ระบบ) */}
-          {!isLoggedIn ? (
-            <div className="p-6 flex flex-col justify-center min-h-[680px]">
-              <div className="text-center mb-6">
-                <div className="w-20 h-20 rounded-full bg-red-50 text-[#C8102E] flex items-center justify-center mx-auto mb-3 border-2 border-[#C8102E]/20 shadow-sm">
-                  <span className="font-black text-2xl">SWU</span>
-                </div>
-                <h2 className="text-xl font-bold text-slate-800">เข้าสู่ระบบ</h2>
-                <p className="text-xs text-slate-500 mt-1">SWU Smart Lost & Found</p>
+          {/* HEADER (Always visible except Scan) */}
+          {activeTab !== 'scan' && (
+            <div className="bg-white px-5 pt-5 pb-3 flex justify-between items-center shadow-sm">
+              <h1 className="text-lg font-extrabold text-[#1E293B]">Smart Lost & Found</h1>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setActiveTab('scan')} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
+                  📷
+                </button>
+                <button onClick={() => setActiveTab('notifications')} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center relative text-slate-600">
+                  🔔
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 1: HOME (หน้าหลัก) */}
+          {activeTab === 'home' && (
+            <div className="p-4 space-y-4">
+              {/* Banner Notice */}
+              <div className="bg-[#FEF6E6] border border-[#FDE6B5] rounded-2xl p-3.5 text-xs text-[#92400E]">
+                <p className="font-bold mb-0.5">โหมดทดลอง</p>
+                <p className="text-[11px] leading-relaxed">ตอนนี้ประกาศเก็บในเครื่องนี้เท่านั้น เพื่อนยังไม่เห็น ต้องเปิดฐานข้อมูลก่อน (ดู README)</p>
               </div>
 
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">อีเมลมหาวิทยาลัย</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="name@g.swu.ac.th"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                  />
+              {/* Search Bar */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="🔎 ค้นหาของหาย / ของที่เก็บได้"
+                  className="w-full bg-white rounded-2xl px-4 py-3 text-xs text-slate-700 shadow-sm border border-slate-100 focus:outline-none"
+                />
+              </div>
+
+              {/* Broadcast Card */}
+              <div className="bg-[#3B82F6] text-white rounded-2xl p-4 shadow-md">
+                <div className="flex items-center gap-1.5 text-xs font-semibold mb-1 opacity-90">
+                  <span>📢</span> ประชาสัมพันธ์
                 </div>
+                <p className="text-sm font-bold">ประกาศ: พบกระเป๋าสตางค์ ที่สำนักหอสมุดกลาง ชั้น 1</p>
+                <p className="text-[10px] opacity-80 mt-1">5 พ.ย. 2569</p>
+              </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">รหัสผ่าน</label>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    required
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="showPass"
-                    checked={showPassword}
-                    onChange={(e) => setShowPassword(e.target.checked)}
-                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <label htmlFor="showPass" className="text-xs text-slate-600 cursor-pointer">แสดงรหัสผ่าน</label>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-md hover:bg-blue-700 transition-all text-sm mt-2"
-                >
-                  เข้าสู่ระบบ
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsLoggedIn(true)}
-                  className="w-full border-2 border-blue-600 text-blue-600 font-bold py-2.5 rounded-xl hover:bg-blue-50 transition-all text-sm"
-                >
-                  สมัครสมาชิก
-                </button>
-              </form>
-
-              {/* SOCIAL LOGIN BUTTONS WITH ICONS */}
-              <div className="mt-8 text-center">
-                <p className="text-xs text-slate-400 font-medium mb-4">หรือเข้าสู่ระบบด้วย</p>
-                <div className="grid grid-cols-3 gap-3">
-                  {/* Google */}
+              {/* Category Grid */}
+              <div className="grid grid-cols-4 gap-3 text-center">
+                {[
+                  { name: 'กระเป๋า', icon: '👜', bg: 'bg-purple-100' },
+                  { name: 'มือถือ', icon: '📱', bg: 'bg-indigo-100' },
+                  { name: 'กุญแจ', icon: '🔑', bg: 'bg-amber-100' },
+                  { name: 'บัตรนักศึกษา', icon: '🪪', bg: 'bg-sky-100' },
+                  { name: 'เอกสาร', icon: '📓', bg: 'bg-purple-100' },
+                  { name: 'เครื่องแต่งกาย', icon: '👕', bg: 'bg-emerald-100' },
+                  { name: 'อุปกรณ์การเรียน', icon: '✏️', bg: 'bg-rose-100' },
+                  { name: 'อื่นๆ', icon: '💬', bg: 'bg-slate-200' },
+                ].map((cat, idx) => (
                   <button 
-                    onClick={() => setIsLoggedIn(true)}
-                    className="flex flex-col items-center justify-center p-3 rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50/50 hover:bg-blue-100/50 transition-all"
+                    key={idx}
+                    onClick={() => setSelectedCategory(cat.name)}
+                    className="flex flex-col items-center gap-1"
                   >
-                    <svg className="w-6 h-6 mb-1" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                    </svg>
-                    <span className="text-xs font-bold text-blue-700">Google</span>
-                  </button>
-
-                  {/* Apple */}
-                  <button 
-                    onClick={() => setIsLoggedIn(true)}
-                    className="flex flex-col items-center justify-center p-3 rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50/50 hover:bg-blue-100/50 transition-all"
-                  >
-                    <svg className="w-6 h-6 mb-1 text-slate-800" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.95c.66-.8 1.11-1.92.99-3.04-.96.04-2.12.64-2.8 1.44-.61.71-1.14 1.86-1 2.97 1.08.08 2.16-.57 2.81-1.37z"/>
-                    </svg>
-                    <span className="text-xs font-bold text-blue-700">Apple</span>
-                  </button>
-
-                  {/* SWU OAuth */}
-                  <button 
-                    onClick={() => setIsLoggedIn(true)}
-                    className="flex flex-col items-center justify-center p-3 rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50/50 hover:bg-blue-100/50 transition-all"
-                  >
-                    <div className="w-6 h-6 mb-1 rounded-full bg-[#C8102E] text-white flex items-center justify-center text-[10px] font-black">
-                      🎓
+                    <div className={`w-12 h-12 ${cat.bg} rounded-2xl flex items-center justify-center text-xl shadow-sm`}>
+                      {cat.icon}
                     </div>
-                    <span className="text-xs font-bold text-blue-700">มศว</span>
+                    <span className="text-[10px] font-medium text-slate-600">{cat.name}</span>
                   </button>
+                ))}
+              </div>
+
+              {/* Feed List Header */}
+              <div className="flex justify-between items-center pt-2">
+                <h2 className="font-bold text-slate-800 text-sm">ของหายล่าสุด</h2>
+                <button className="text-xs text-[#2563EB] font-semibold">ดูทั้งหมด</button>
+              </div>
+
+              {/* Items Feed Cards */}
+              <div className="space-y-3">
+                {items.map((item) => (
+                  <div key={item.id} className="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-100 flex items-center gap-3.5">
+                    <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">
+                      {item.icon || '📦'}
+                    </div>
+                    <div className="flex-1">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        item.type === 'lost' ? 'bg-[#FFEBEB] text-[#EF4444]' : 'bg-[#E6F9F0] text-[#10B981]'
+                      }`}>
+                        {item.type === 'lost' ? 'ของหาย' : 'ของที่เก็บได้'}
+                      </span>
+                      <h3 className="font-bold text-slate-800 text-sm mt-1">{item.title}</h3>
+                      <p className="text-[11px] text-slate-500 mt-0.5">พบที่: {item.location}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{item.date}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: MAP (แผนที่ มศว ประสานมิตร) */}
+          {activeTab === 'map' && (
+            <div className="p-4 space-y-3">
+              <h2 className="font-bold text-slate-800 text-sm mb-1">แผนที่ มศว ประสานมิตร</h2>
+              
+              {/* Map Preview Box */}
+              <div className="bg-white rounded-3xl p-2 shadow-sm border border-slate-200 overflow-hidden relative">
+                <div className="h-64 rounded-2xl bg-slate-200 overflow-hidden relative flex items-center justify-center">
+                  <img 
+                    src="https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop&q=60" 
+                    alt="SWU Map" 
+                    className="w-full h-full object-cover opacity-80"
+                  />
+                  <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-700 shadow-sm">
+                    Leaflet | © OpenStreetMap
+                  </div>
+                  {/* Pin Markers */}
+                  <div className="absolute top-1/2 left-1/3 w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow-md animate-bounce"></div>
+                  <div className="absolute bottom-1/3 right-1/3 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white shadow-md"></div>
+                </div>
+
+                <div className="flex gap-4 p-2 text-[11px] font-medium text-slate-600 justify-center">
+                  <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>ของหาย</div>
+                  <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>ของที่เก็บได้</div>
+                  <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-rose-400"></span>สถานที่ในมหาวิทยาลัย</div>
+                </div>
+              </div>
+
+              {/* Map Action Buttons */}
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                <button className="bg-[#2563EB] text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm whitespace-nowrap">ทั้งหมด</button>
+                <button className="bg-white text-slate-700 px-3 py-2 rounded-xl text-xs font-medium border border-slate-200 whitespace-nowrap">สำนักหอสมุดกลาง 1</button>
+                <button className="bg-white text-slate-700 px-3 py-2 rounded-xl text-xs font-medium border border-slate-200 whitespace-nowrap">อาคารเรียนรวม 1</button>
+              </div>
+
+              <button className="w-full bg-[#2563EB] text-white py-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-md">
+                🧭 เปิดใน Google Maps / นำทาง
+              </button>
+              <p className="text-[10px] text-center text-slate-400">ถ้าแผนที่ด้านบนไม่ขึ้น ให้กดปุ่มนี้แทน</p>
+
+              {/* Feed Items under map */}
+              <div className="space-y-3 pt-2">
+                <h3 className="font-bold text-slate-800 text-xs">รายการล่าสุด</h3>
+                {items.slice(0, 2).map((item) => (
+                  <div key={item.id} className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100 flex items-center gap-3">
+                    <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-xl">
+                      {item.icon}
+                    </div>
+                    <div>
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${item.type === 'lost' ? 'bg-rose-100 text-rose-500' : 'bg-emerald-100 text-emerald-600'}`}>
+                        {item.type === 'lost' ? 'ของหาย' : 'ของที่เก็บได้'}
+                      </span>
+                      <h4 className="font-bold text-slate-800 text-xs mt-0.5">{item.title}</h4>
+                      <p className="text-[10px] text-slate-400">พบที่: {item.location}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: CALENDAR (ปฏิทิน) */}
+          {activeTab === 'calendar' && (
+            <div className="p-4 space-y-4">
+              <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100">
+                <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold text-slate-500 mb-3">
+                  <span>อา</span><span>จ</span><span>อ</span><span>พ</span><span>พฤ</span><span>ศ</span><span>ส</span>
+                </div>
+                <div className="grid grid-cols-7 gap-2 text-center text-xs">
+                  {Array.from({ length: 30 }).map((_, i) => (
+                    <div 
+                      key={i} 
+                      className={`py-2 rounded-full font-medium ${
+                        i + 1 === 5 ? 'bg-[#2563EB] text-white font-bold shadow-md' : 'text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      {i + 1}
+                      {[2, 3, 4].includes(i + 1) && <div className="w-1 h-1 bg-amber-400 rounded-full mx-auto mt-0.5"></div>}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2 text-[10px] text-slate-500">
+                  <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                  มีรายการของหาย/ของที่เก็บได้
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <h3 className="font-bold text-slate-800 text-xs">รายการตามหาวันนี้</h3>
+                <span className="text-xs text-[#2563EB] font-semibold">ดูทั้งหมด</span>
+              </div>
+
+              <div className="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-100 flex items-center gap-3.5">
+                <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-xl text-rose-500">
+                  ✏️
+                </div>
+                <div>
+                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-500">ของหาย</span>
+                  <h4 className="font-bold text-slate-800 text-xs mt-0.5">กล่องดินสอสีเขียว</h4>
+                  <p className="text-[10px] text-slate-400">พบที่: อาคารเรียนรวม (Learning Tower)</p>
                 </div>
               </div>
             </div>
-          ) : (
-            /* SCREEN 2: MAIN APP (เมื่อเข้าสู่ระบบแล้ว) */
-            <div className="p-4 space-y-4">
-              {activeTab === 'feed' && (
-                <>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="ค้นหาของหาย, สถานที่..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-white pl-10 pr-4 py-2.5 rounded-2xl text-xs border border-slate-200 shadow-sm focus:outline-none"
-                    />
-                    <span className="absolute left-3.5 top-2.5 text-slate-400 text-sm">🔍</span>
-                  </div>
+          )}
 
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setFilter('all')}
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${filter === 'all' ? 'bg-[#C8102E] text-white' : 'bg-white text-slate-600'}`}
-                    >
-                      ทั้งหมด
-                    </button>
-                    <button
-                      onClick={() => setFilter('lost')}
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${filter === 'lost' ? 'bg-rose-600 text-white' : 'bg-white text-slate-600'}`}
-                    >
-                      🔴 ตามหาของหาย
-                    </button>
-                    <button
-                      onClick={() => setFilter('found')}
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${filter === 'found' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-600'}`}
-                    >
-                      🟢 เก็บได้
-                    </button>
-                  </div>
+          {/* TAB 4: PROFILE (โปรไฟล์นิสิต) */}
+          {activeTab === 'profile' && (
+            <div className="p-4 space-y-3">
+              <div className="bg-white rounded-3xl p-5 text-center shadow-sm border border-slate-100 relative">
+                <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto text-3xl mb-2 relative">
+                  🎓
+                  <div className="absolute bottom-0 right-0 w-6 h-6 bg-[#2563EB] rounded-full text-white flex items-center justify-center text-xs">📷</div>
+                </div>
+                <h3 className="font-extrabold text-slate-800 text-base">{user.name}</h3>
+                <p className="text-xs text-slate-400">นักศึกษา มศว · {user.email}</p>
+              </div>
 
-                  <div className="space-y-3">
-                    {filteredItems.map((item) => (
-                      <div key={item.id} className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100 flex gap-3">
-                        <img src={item.image} alt="" className="w-20 h-20 rounded-xl object-cover" />
-                        <div className="flex-1">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${item.type === 'lost' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                            {item.type === 'lost' ? 'ตามหาของหาย' : 'เก็บได้'}
-                          </span>
-                          <h3 className="font-bold text-slate-800 text-xs mt-1">{item.title}</h3>
-                          <p className="text-[11px] text-slate-500">📍 {item.location}</p>
-                          <p className="text-[11px] text-slate-600 mt-1 line-clamp-1">{item.description}</p>
-                          <p className="text-[11px] text-[#C8102E] font-medium mt-1">ติดต่อ: {item.contact}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
+              {/* Stats Box */}
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 grid grid-cols-3 text-center">
+                <div>
+                  <p className="text-xl font-black text-[#2563EB]">2</p>
+                  <p className="text-[10px] text-slate-500">ประกาศของหาย</p>
+                </div>
+                <div className="border-x border-slate-100">
+                  <p className="text-xl font-black text-[#2563EB]">2</p>
+                  <p className="text-[10px] text-slate-500">ของที่เก็บได้</p>
+                </div>
+                <div>
+                  <p className="text-xl font-black text-[#2563EB]">0</p>
+                  <p className="text-[10px] text-slate-500">ได้คืนแล้ว</p>
+                </div>
+              </div>
 
-              {activeTab === 'post' && (
-                <form onSubmit={handlePost} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 space-y-3">
-                  <h2 className="text-sm font-bold text-slate-800">ลงประกาศใหม่</h2>
+              {/* Option List */}
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 divide-y divide-slate-100 text-xs text-slate-700">
+                <div className="p-3.5 flex justify-between items-center">
+                  <span className="flex items-center gap-2">📄 ประวัติประกาศ</span>
+                  <span>›</span>
+                </div>
+                <div className="p-3.5 flex justify-between items-center">
+                  <span className="flex items-center gap-2">💙 รายการที่บันทึกไว้ (0)</span>
+                  <span>›</span>
+                </div>
+                <div className="p-3.5 flex justify-between items-center">
+                  <span className="flex items-center gap-2">⚙️ ตั้งค่า</span>
+                  <span>›</span>
+                </div>
+                <div className="p-3.5 flex justify-between items-center">
+                  <span className="flex items-center gap-2">✅ ยืนยันตัวตน</span>
+                  <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded text-[10px]">ยังไม่ยืนยัน</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: SCAN (สแกนรูป) */}
+          {activeTab === 'scan' && (
+            <div className="bg-[#0A1120] min-h-[750px] p-5 text-white flex flex-col justify-between">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setActiveTab('home')} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs">‹</button>
+                <h2 className="font-bold text-sm">สแกนรูปเพื่อค้นหา</h2>
+              </div>
+
+              <div className="border-2 border-blue-400/40 rounded-3xl h-80 flex flex-col items-center justify-center bg-slate-900/50 my-auto">
+                <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-3xl mb-2">📷</div>
+                <p className="text-xs text-slate-400">ถ่ายหรือเลือกรูปสิ่งของ เพื่อดูรายการที่คล้ายกัน</p>
+              </div>
+
+              <div className="flex justify-around items-center pb-8">
+                <div className="flex flex-col items-center text-[10px] text-slate-400 gap-1">
+                  <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-lg">🖼️</div>
+                  <span>แกลเลอรี</span>
+                </div>
+                <div className="w-16 h-16 rounded-full bg-[#2563EB] border-4 border-slate-800 flex items-center justify-center shadow-lg"></div>
+                <div className="flex flex-col items-center text-[10px] text-slate-400 gap-1">
+                  <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-lg">⚡</div>
+                  <span>แฟลช</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 6: NOTIFICATIONS (แจ้งเตือน) */}
+          {activeTab === 'notifications' && (
+            <div className="p-4 space-y-3">
+              <div className="flex justify-between items-center mb-2">
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setActiveTab('home')} className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-xs">‹</button>
+                  <h2 className="font-bold text-slate-800 text-sm">แจ้งเตือน</h2>
+                </div>
+                <button className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">✓</button>
+              </div>
+
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                <button className="bg-[#2563EB] text-white px-3 py-1.5 rounded-xl text-xs font-bold">ทั้งหมด</button>
+                <button className="bg-white text-slate-600 px-3 py-1.5 rounded-xl text-xs">ของหาย</button>
+                <button className="bg-white text-slate-600 px-3 py-1.5 rounded-xl text-xs">ของที่เก็บได้</button>
+                <button className="bg-white text-slate-600 px-3 py-1.5 rounded-xl text-xs">ระบบ</button>
+              </div>
+
+              <div className="space-y-2.5">
+                <div className="bg-white p-3 rounded-2xl border border-slate-100 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-500">📍</div>
                   <div>
-                    <label className="block text-xs font-semibold mb-1">ชื่อสิ่งของ *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="เช่น บัตรนิสิต, ร่ม, AirPods"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
-                    />
+                    <h4 className="font-bold text-xs text-slate-800">มีผู้ประกาศของหาย: กล่องดินสอสีเขียว</h4>
+                    <p className="text-[10px] text-slate-400">อาคารเรียนรวม (Learning Tower) · 5 พ.ย. 2569</p>
                   </div>
+                </div>
+                <div className="bg-white p-3 rounded-2xl border border-slate-100 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">🔍</div>
                   <div>
-                    <label className="block text-xs font-semibold mb-1">สถานที่พบ / หาย *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="เช่น ตึก 300 ปี, โรงอาหารกลาง"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
-                    />
+                    <h4 className="font-bold text-xs text-slate-800">มีผู้เก็บของได้: โทรศัพท์มือถือ</h4>
+                    <p className="text-[10px] text-slate-400">โรงอาหาร · 3 พ.ย. 2569</p>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold mb-1">รายละเอียดเพิ่มเติม</label>
-                    <textarea
-                      rows="3"
-                      placeholder="ระบุจุดสังเกต..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
-                    ></textarea>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 7: POST FORM Modal */}
+          {activeTab === 'post' && (
+            <div className="p-4">
+              <form onSubmit={handlePostSubmit} className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 space-y-3">
+                <h2 className="text-sm font-bold text-slate-800">ลงประกาศใหม่</h2>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">ประเภท</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button type="button" onClick={() => setType('lost')} className={`py-2 rounded-xl text-xs font-bold ${type === 'lost' ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-600'}`}>ของหาย</button>
+                    <button type="button" onClick={() => setType('found')} className={`py-2 rounded-xl text-xs font-bold ${type === 'found' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-600'}`}>ของที่เก็บได้</button>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold mb-1">ข้อมูลติดต่อ *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="เบอร์โทร / LINE ID"
-                      value={contact}
-                      onChange={(e) => setContact(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
-                    />
-                  </div>
-                  <button type="submit" className="w-full bg-[#C8102E] text-white py-2 rounded-xl text-xs font-bold">
-                    เผยแพร่ประกาศ
-                  </button>
-                </form>
-              )}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">ชื่อสิ่งของ *</label>
+                  <input type="text" required placeholder="เช่น กล่องดินสอ, กระเป๋าสตางค์" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">สถานที่พบ / หาย *</label>
+                  <input type="text" required placeholder="เช่น สำนักหอสมุดกลาง, อาคารเรียนรวม" value={location} onChange={(e) => setLocation(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs" />
+                </div>
+                <button type="submit" className="w-full bg-[#2563EB] text-white py-3 rounded-xl text-xs font-bold shadow-md">เผยแพร่ประกาศ</button>
+              </form>
             </div>
           )}
 
         </div>
 
-        {/* BOTTOM NAVIGATION (เมื่อเข้าสู่ระบบแล้ว) */}
-        {isLoggedIn && (
-          <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-8 py-2 flex justify-around items-center">
-            <button 
-              onClick={() => setActiveTab('feed')}
-              className={`flex flex-col items-center text-[10px] ${activeTab === 'feed' ? 'text-[#C8102E] font-bold' : 'text-slate-400'}`}
-            >
-              <span className="text-base">📋</span>
-              <span>รายการ</span>
-            </button>
-            <button 
-              onClick={() => setActiveTab('post')}
-              className={`flex flex-col items-center text-[10px] ${activeTab === 'post' ? 'text-[#C8102E] font-bold' : 'text-slate-400'}`}
-            >
-              <span className="text-base">➕</span>
-              <span>แจ้งโพสต์</span>
-            </button>
-          </div>
-        )}
+        {/* BOTTOM NAVIGATION BAR (ตรงตามรูปภาพต้นแบบ) */}
+        <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-6 py-2 flex justify-between items-center z-20 shadow-lg">
+          <button 
+            onClick={() => setActiveTab('home')}
+            className={`flex flex-col items-center gap-0.5 text-[10px] ${activeTab === 'home' ? 'text-[#2563EB] font-bold' : 'text-slate-400'}`}
+          >
+            <span className="text-lg">🏠</span>
+            <span>หน้าหลัก</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('map')}
+            className={`flex flex-col items-center gap-0.5 text-[10px] ${activeTab === 'map' ? 'text-[#2563EB] font-bold' : 'text-slate-400'}`}
+          >
+            <span className="text-lg">📍</span>
+            <span>แผนที่</span>
+          </button>
+
+          {/* Big Plus Floating Button */}
+          <button 
+            onClick={() => setActiveTab('post')}
+            className="w-12 h-12 rounded-full bg-[#2563EB] text-white flex items-center justify-center text-xl shadow-lg -mt-5 border-4 border-[#F4F8FE]"
+          >
+            +
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('calendar')}
+            className={`flex flex-col items-center gap-0.5 text-[10px] ${activeTab === 'calendar' ? 'text-[#2563EB] font-bold' : 'text-slate-400'}`}
+          >
+            <span className="text-lg">📅</span>
+            <span>ปฏิทิน</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('profile')}
+            className={`flex flex-col items-center gap-0.5 text-[10px] ${activeTab === 'profile' ? 'text-[#2563EB] font-bold' : 'text-slate-400'}`}
+          >
+            <span className="text-lg">👤</span>
+            <span>โปรไฟล์</span>
+          </button>
+        </div>
 
       </div>
     </div>
